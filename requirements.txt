@@ -1,5 +1,5 @@
 streamlit==1.40.0
 fal-client==0.3.0
 requests==2.32.0
-pillow==10.2.0
+pillow==11.0.0
 python-dotenv==1.0.0
