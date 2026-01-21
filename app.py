@@ -24,6 +24,21 @@ if not fal_api_key:
     st.error("❌ FAL API key not found. Add it to `.streamlit/secrets.toml`")
     st.stop()
 
+    import streamlit as st
+from fal_client import AsyncClient
+
+# Load the FAL API key from Streamlit Secrets
+fal_api_key = st.secrets.get("fal_api_key")
+
+# Check if key exists
+if not fal_api_key:
+    st.error("FAL API key not found in secrets!")
+    st.stop()
+
+# Now configure the client
+fal_client.configure(credentials=fal_api_key)
+
+
 fal_client.configure(credentials=fal_api_key)
 
 # ============================================================================
