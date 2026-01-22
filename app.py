@@ -3,7 +3,7 @@ import os
 import requests
 from PIL import Image
 import io
-import requests
+
 
 # Set up page
 st.set_page_config(
@@ -25,7 +25,7 @@ if not fal_api_key:
     st.stop()
 
 # Set it as environment variable so fal_client can find it
-os.environ["FAL_KEY"] = fal_api_key
+
 
 # ============================================================================
 # SIDEBAR: Settings & Safety Toggle
@@ -117,17 +117,19 @@ with tab1:
                         "https://queue.fal.run/fal-ai/flux-pro/v1.1",
                         headers={"Authorization": f"Key {fal_api_key}"},
                         json={
-                            "prompt": prompt,
-                            "aspect_ratio": aspect_map[aspect_ratio],
+                            "prompt": edit_prompt,      # ← Use edit_prompt instead
                             "safety_tolerance": safety_tolerance if safety_enabled else 0.9,
-                            "seed": 42,
                         }
                     )
                     response.raise_for_status()
                     result = response.json()
                     
                     # Display result
-                    image_url = result["images"][0]["url"]
+                    # FAL REST API returns data differently
+                    if "data" in result:
+                        image_url = result["data"]["images"][0]["url"]
+                    else:
+                        image_url = result[0]  # Fallback for different response format
                     st.image(image_url, caption=prompt, use_column_width=True)
                     
                     # Store in session for Image Editor tab
@@ -207,8 +209,11 @@ with tab2:
                         result = response.json()
                         
                         # Display result
-                        image_url = result["images"][0]["url"]
-                        st.image(image_url, caption=prompt, use_column_width=True)
+                        if "data" in result:
+                            image_url = result["data"]["images"][0]["url"]
+                        else:
+                            image_url = result[0]
+                        st.image(image_url, caption="Edited Image", use_column_width=True)
                         
                         # Store in session for Image Editor tab
                         st.session_state.last_generated_image_url = image_url
