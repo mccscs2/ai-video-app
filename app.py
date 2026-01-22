@@ -190,44 +190,29 @@ with tab2:
         if st.button("🎨 Apply Edits", key="apply_edits"):
             if not edit_prompt.strip():
                 st.error("Please describe the changes you want")
-            else:
-                with st.spinner("🎨 Editing image..."):
-                    try:
-                        # Use Flux Schnell for quick edits
-                        if isinstance(image_for_edit, str):
-                            image_url = image_for_edit
-                        else:
-                            # Upload image temporarily
-                            image_data = Image.open(image_for_edit)
-                            st.info("Converting image for API...")
-                            image_url = "placeholder_url"  # In production, upload to storage
-                        
-                        import asyncio
-
-                        result = asyncio.run(client.submit(
+        else:
+            with st.spinner("🎨 Editing image..."):
+                try:
+                    # Use asyncio.run() for async code in Streamlit
+                    async def edit():
+                        return await client.submit(
                             "fal-ai/flux-schnell",
                             arguments={
                                 "prompt": edit_prompt,
                                 "safety_tolerance": safety_tolerance if safety_enabled else 0.9,
                                 "num_inference_steps": 4,
                             }
-                        ))
-                        
-                        edited_image_url = result["images"][0]["url"]
-                        st.image(edited_image_url, caption="Edited Image", use_column_width=True)
-                        
-                        st.download_button(
-                            "⬇️ Download Edited Image",
-                            data=requests.get(edited_image_url).content,
-                            file_name="edited_image.png",
-                            mime="image/png"
                         )
-                        
-                        st.session_state.last_edited_image_url = edited_image_url
-                        st.success("✅ Image edited!")
                     
-                    except Exception as e:
-                        st.error(f"❌ Error: {str(e)}")
+                    result = asyncio.run(edit())
+
+                    # Display result
+                    edited_image_url = result["images"][0]["url"]
+                    st.image(edited_image_url, caption="Edited Image", use_column_width=True)
+
+                except Exception as e:
+                    st.error(f"Error editing image: {str(e)}")
+
 
 # ============================================================================
 # TAB 3: CHARACTER ANIMATION
