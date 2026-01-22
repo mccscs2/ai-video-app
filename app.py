@@ -110,39 +110,40 @@ with tab1:
         }
     
     if st.button("✨ Generate Image", key="gen_image"):
-    if not prompt.strip():
-        st.error("Please enter a prompt")
-    else:
-        with st.spinner("🔮 Generating image..."):
-            try:
-                result = fal.run(
-                    "fal-ai/flux-pro/v1.1",
-                    arguments={
-                        "prompt": prompt,
-                        "aspect_ratio": aspect_map[aspect_ratio],
-                        "safety_tolerance": safety_tolerance if safety_enabled else 0.9,
-                        "seed": 42,
-                    }
-                )
-                
-                # Display result
-                image_url = result["images"][0]["url"]
-                st.image(image_url, caption=prompt, use_column_width=True)
-                
-                # Store in session for Image Editor tab
-                st.session_state.last_generated_image_url = image_url
-                
-                # Download button
-                response = requests.get(image_url)
-                st.download_button(
-                    "📥 Download Image",
-                    data=response.content,
-                    file_name="generated_image.png",
-                    mime="image/png"
-                )
-            except Exception as e:
-                st.error(f"❌ Error generating image: {str(e)}")
-                st.info("💡 Tip: Check that your FAL API key is valid and has credits remaining.")
+        if not prompt.strip():
+            st.error("Please enter a prompt")
+        else:
+            with st.spinner("🔮 Generating image..."):
+                try:
+                    result = fal.run(
+                        "fal-ai/flux-pro/v1.1",
+                        arguments={
+                            "prompt": prompt,
+                            "aspect_ratio": aspect_map[aspect_ratio],
+                            "safety_tolerance": safety_tolerance if safety_enabled else 0.9,
+                            "seed": 42,
+                        }
+                    )
+                    
+                    # Display result
+                    image_url = result["images"][0]["url"]
+                    st.image(image_url, caption=prompt, use_column_width=True)
+                    
+                    # Store in session for Image Editor tab
+                    st.session_state.last_generated_image_url = image_url
+                    
+                    # Download button
+                    response = requests.get(image_url)
+                    st.download_button(
+                        "📥 Download Image",
+                        data=response.content,
+                        file_name="generated_image.png",
+                        mime="image/png"
+                    )
+                except Exception as e:
+                    st.error(f"❌ Error generating image: {str(e)}")
+                    st.info("💡 Tip: Check that your FAL API key is valid and has credits remaining.")
+
 
 
 
