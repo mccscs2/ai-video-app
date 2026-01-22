@@ -18,28 +18,20 @@ st.set_page_config(
 st.title("🎬 AI Character Animation Studio")
 st.markdown("Create character animations, modify images, and generate videos—all with artist control")
 
-# Initialize FAL client with API key
-fal_api_key = st.secrets.get("fal_api_key", "")
-if not fal_api_key:
-    st.error("❌ FAL API key not found. Add it to `.streamlit/secrets.toml`")
-    st.stop()
-
-    import streamlit as st
+# Import FAL client
+import streamlit as st
 from fal_client import AsyncClient
 
 # Load the FAL API key from Streamlit Secrets
 fal_api_key = st.secrets.get("fal_api_key")
 
-# Check if key exists
 if not fal_api_key:
-    st.error("FAL API key not found in secrets!")
+    st.error("❌ FAL API key not found in Streamlit Secrets!")
     st.stop()
 
-# Now configure the client
-fal_client.configure(credentials=fal_api_key)
+# Initialize FAL client
+client = AsyncClient(credentials=fal_api_key)
 
-
-fal_client.configure(credentials=fal_api_key)
 
 # ============================================================================
 # SIDEBAR: Settings & Safety Toggle
