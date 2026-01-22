@@ -1,6 +1,6 @@
 import streamlit as st
 import os
-import fal_client
+import requests
 from PIL import Image
 import io
 import requests
@@ -113,15 +113,18 @@ with tab1:
         else:
             with st.spinner("🔮 Generating image..."):
                 try:
-                    result = fal_client.run_sync(
-                     "fal-ai/flux-pro/v1.1",
-                        arguments={
+                    response = requests.post(
+                        "https://queue.fal.run/fal-ai/flux-pro/v1.1",
+                        headers={"Authorization": f"Key {fal_api_key}"},
+                        json={
                             "prompt": prompt,
                             "aspect_ratio": aspect_map[aspect_ratio],
                             "safety_tolerance": safety_tolerance if safety_enabled else 0.9,
                             "seed": 42,
                         }
                     )
+                    response.raise_for_status()
+                    result = response.json()
                     
                     # Display result
                     image_url = result["images"][0]["url"]
@@ -131,13 +134,14 @@ with tab1:
                     st.session_state.last_generated_image_url = image_url
                     
                     # Download button
-                    response = requests.get(image_url)
+                    img_response = requests.get(image_url)
                     st.download_button(
                         "📥 Download Image",
-                        data=response.content,
+                        data=img_response.content,
                         file_name="generated_image.png",
                         mime="image/png"
                     )
+
                 except Exception as e:
                     st.error(f"❌ Error generating image: {str(e)}")
                     st.info("💡 Tip: Check that your FAL API key is valid and has credits remaining.")
@@ -189,27 +193,35 @@ with tab2:
             else:
                 with st.spinner("🎨 Editing image..."):
                     try:
-                        result = fal_client.run_sync(
-                            "fal-ai/flux-pro/v1.1",
-                            arguments={
-                                "prompt": edit_prompt,
+                        response = requests.post(
+                            "https://queue.fal.run/fal-ai/flux-pro/v1.1",
+                            headers={"Authorization": f"Key {fal_api_key}"},
+                            json={
+                                "prompt": prompt,
+                                "aspect_ratio": aspect_map[aspect_ratio],
                                 "safety_tolerance": safety_tolerance if safety_enabled else 0.9,
-                                "num_inference_steps": 4,
+                                "seed": 42,
                             }
                         )
+                        response.raise_for_status()
+                        result = response.json()
                         
                         # Display result
-                        edited_image_url = result["images"][0]["url"]
-                        st.image(edited_image_url, caption="Edited Image", use_column_width=True)
+                        image_url = result["images"][0]["url"]
+                        st.image(image_url, caption=prompt, use_column_width=True)
+                        
+                        # Store in session for Image Editor tab
+                        st.session_state.last_generated_image_url = image_url
                         
                         # Download button
-                        response = requests.get(edited_image_url)
+                        img_response = requests.get(image_url)
                         st.download_button(
-                            "📥 Download Edited Image",
-                            data=response.content,
-                            file_name="edited_image.png",
+                            "📥 Download Image",
+                            data=img_response.content,
+                            file_name="generated_image.png",
                             mime="image/png"
                         )
+
 
                     except Exception as e:
                         st.error(f"❌ Error editing image: {str(e)}")
