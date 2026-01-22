@@ -4,6 +4,7 @@ import os
 from fal_client import AsyncClient
 from PIL import Image
 import io
+import requests
 
 # Set up page
 st.set_page_config(
@@ -122,7 +123,7 @@ with tab1:
                     # Call FAL API
                     async def generate():
                         return await client.submit(
-                            "fal-ai/flux-schnell",
+                            "fal-ai/flux-pro/v1.1",
                             arguments={
                                 "prompt": prompt,
                                 "aspect_ratio": aspect_map[aspect_ratio],
@@ -175,6 +176,7 @@ with tab2:
         if "last_generated_image_url" in st.session_state:
             if st.button("📎 Use Last Generated Image"):
                 st.session_state.use_generated = True
+                st.rerun()  # ← ADD THIS LINE
     
     if uploaded_file or st.session_state.get("use_generated", False):
         # Display uploaded image
@@ -183,6 +185,7 @@ with tab2:
         else:
             image_data = Image.open(uploaded_file)
             st.image(image_data, caption="Original Image", width=300)
+            st.session_state.use_generated = False  # ← ADD THIS LINE
         
         # Edit prompt
         st.markdown("---")
@@ -200,7 +203,7 @@ with tab2:
                         # Use asyncio.run() for async code in Streamlit
                         async def edit():
                             return await client.submit(
-                                "fal-ai/flux-schnell",
+                                "fal-ai/flux-pro/v1.1",
                                 arguments={
                                     "prompt": edit_prompt,
                                     "safety_tolerance": safety_tolerance if safety_enabled else 0.9,
