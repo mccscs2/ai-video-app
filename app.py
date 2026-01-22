@@ -1,3 +1,4 @@
+import asyncio
 import streamlit as st
 import fal_client
 import requests
