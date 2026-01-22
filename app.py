@@ -14,13 +14,13 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+import os
+import streamlit as st
+from fal_client import AsyncClient
+
 # Title
 st.title("🎬 AI Character Animation Studio")
 st.markdown("Create character animations, modify images, and generate videos—all with artist control")
-
-# Import FAL client
-import streamlit as st
-from fal_client import AsyncClient
 
 # Load the FAL API key from Streamlit Secrets
 fal_api_key = st.secrets.get("fal_api_key")
@@ -29,8 +29,12 @@ if not fal_api_key:
     st.error("❌ FAL API key not found in Streamlit Secrets!")
     st.stop()
 
-# Initialize FAL client
-client = AsyncClient(credentials=fal_api_key)
+# Set it as environment variable so fal_client can find it
+os.environ["FAL_KEY"] = fal_api_key
+
+# Initialize FAL client (it will auto-discover the FAL_KEY env var)
+client = AsyncClient()
+
 
 
 # ============================================================================
