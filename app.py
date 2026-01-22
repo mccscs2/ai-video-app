@@ -26,10 +26,6 @@ if not fal_api_key:
 
 # Set it as environment variable so fal_client can find it
 os.environ["FAL_KEY"] = fal_api_key
-
-# Initialize FAL client (it will auto-discover the FAL_KEY env var)
-# Initialize FAL client with API key
-os.environ["FAL_KEY"] = fal_api_key
 client = Client()
 # ============================================================================
 # SIDEBAR: Settings & Safety Toggle
@@ -169,16 +165,16 @@ with tab2:
         if "last_generated_image_url" in st.session_state:
             if st.button("📎 Use Last Generated Image"):
                 st.session_state.use_generated = True
-                st.rerun()  # ← ADD THIS LINE
+                st.rerun()
     
     if uploaded_file or st.session_state.get("use_generated", False):
         # Display uploaded image
         if st.session_state.get("use_generated", False):
             st.image(st.session_state.last_generated_image_url, caption="Original Image", width=300)
+            st.session_state.use_generated = False
         else:
             image_data = Image.open(uploaded_file)
             st.image(image_data, caption="Original Image", width=300)
-            st.session_state.use_generated = False  # ← ADD THIS LINE
         
         # Edit prompt
         st.markdown("---")
@@ -187,14 +183,14 @@ with tab2:
             height=80
         )
         
-    if st.button("🎨 Apply Edits", key="apply_edits"):
+        if st.button("🎨 Apply Edits", key="apply_edits"):
             if not edit_prompt.strip():
                 st.error("Please describe the changes you want")
             else:
                 with st.spinner("🎨 Editing image..."):
                     try:
                         result = client.run(
-                         "fal-ai/flux-pro/v1.1",
+                            "fal-ai/flux-pro/v1.1",
                             arguments={
                                 "prompt": edit_prompt,
                                 "safety_tolerance": safety_tolerance if safety_enabled else 0.9,
@@ -218,6 +214,7 @@ with tab2:
                     except Exception as e:
                         st.error(f"❌ Error editing image: {str(e)}")
                         st.info("💡 Tip: Ensure your image is clear and the edit description is detailed.")
+
 
 
 
