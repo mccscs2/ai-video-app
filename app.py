@@ -1,3 +1,4 @@
+import asyncio
 import streamlit as st
 import fal_client
 import requests
@@ -118,19 +119,22 @@ with tab1:
 if st.button("✨ Generate Image", key="gen_image"):
     if not prompt.strip():
         st.error("Please enter a prompt")
-    else:
+    else:  # ← ADD THIS LINE
         with st.spinner("🔮 Generating image..."):
             try:
                 # Call FAL API
-                result = client.run(
-                    "fal-ai/flux-pro/v1.1",
-                    arguments={
-                        "prompt": prompt,
-                        "aspect_ratio": aspect_map[aspect_ratio],
-                        "safety_tolerance": safety_tolerance if safety_enabled else 0.9,
-                        "seed": 42,
-                    }
-                )
+                async def generate():
+                    return await client.submit(
+                        "fal-ai/flux-pro/v1.1",
+                        arguments={
+                            "prompt": prompt,
+                            "aspect_ratio": aspect_map[aspect_ratio],
+                            "safety_tolerance": safety_tolerance if safety_enabled else 0.9,
+                            "seed": 42,
+                        }
+                    )
+                
+                result = asyncio.run(generate())
 
                 # Display result
                 image_url = result["images"][0]["url"]
@@ -190,28 +194,28 @@ with tab2:
         if st.button("🎨 Apply Edits", key="apply_edits"):
             if not edit_prompt.strip():
                 st.error("Please describe the changes you want")
-        else:
-            with st.spinner("🎨 Editing image..."):
-                try:
-                    # Use asyncio.run() for async code in Streamlit
-                    async def edit():
-                        return await client.submit(
-                            "fal-ai/flux-schnell",
-                            arguments={
-                                "prompt": edit_prompt,
-                                "safety_tolerance": safety_tolerance if safety_enabled else 0.9,
-                                "num_inference_steps": 4,
-                            }
-                        )
-                    
-                    result = asyncio.run(edit())
+            else:
+                with st.spinner("🎨 Editing image..."):
+                    try:
+                        # Use asyncio.run() for async code in Streamlit
+                        async def edit():
+                            return await client.submit(
+                                "fal-ai/flux-schnell",
+                                arguments={
+                                    "prompt": edit_prompt,
+                                    "safety_tolerance": safety_tolerance if safety_enabled else 0.9,
+                                    "num_inference_steps": 4,
+                                }
+                            )
+                        
+                        result = asyncio.run(edit())
 
-                    # Display result
-                    edited_image_url = result["images"][0]["url"]
-                    st.image(edited_image_url, caption="Edited Image", use_column_width=True)
+                        # Display result
+                        edited_image_url = result["images"][0]["url"]
+                        st.image(edited_image_url, caption="Edited Image", use_column_width=True)
 
-                except Exception as e:
-                    st.error(f"Error editing image: {str(e)}")
+                    except Exception as e:
+                        st.error(f"Error editing image: {str(e)}")
 
 
 # ============================================================================
