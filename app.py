@@ -185,37 +185,37 @@ with tab2:
             height=80
         )
         
-       if st.button("🎨 Apply Edits", key="apply_edits"):
-    if not edit_prompt.strip():
-        st.error("Please describe the changes you want")
-    else:
-        with st.spinner("🎨 Editing image..."):
-            try:
-                result = fal.run(
-                    "fal-ai/flux-pro/v1.1",
-                    arguments={
-                        "prompt": edit_prompt,
-                        "safety_tolerance": safety_tolerance if safety_enabled else 0.9,
-                        "num_inference_steps": 4,
-                    }
-                )
-                
-                # Display result
-                edited_image_url = result["images"][0]["url"]
-                st.image(edited_image_url, caption="Edited Image", use_column_width=True)
-                
-                # Download button
-                response = requests.get(edited_image_url)
-                st.download_button(
-                    "📥 Download Edited Image",
-                    data=response.content,
-                    file_name="edited_image.png",
-                    mime="image/png"
-                )
+    if st.button("🎨 Apply Edits", key="apply_edits"):
+            if not edit_prompt.strip():
+                st.error("Please describe the changes you want")
+            else:
+                with st.spinner("🎨 Editing image..."):
+                    try:
+                        result = fal.run(
+                            "fal-ai/flux-pro/v1.1",
+                            arguments={
+                                "prompt": edit_prompt,
+                                "safety_tolerance": safety_tolerance if safety_enabled else 0.9,
+                                "num_inference_steps": 4,
+                            }
+                        )
+                        
+                        # Display result
+                        edited_image_url = result["images"][0]["url"]
+                        st.image(edited_image_url, caption="Edited Image", use_column_width=True)
+                        
+                        # Download button
+                        response = requests.get(edited_image_url)
+                        st.download_button(
+                            "📥 Download Edited Image",
+                            data=response.content,
+                            file_name="edited_image.png",
+                            mime="image/png"
+                        )
 
-            except Exception as e:
-                st.error(f"❌ Error editing image: {str(e)}")
-                st.info("💡 Tip: Ensure your image is clear and the edit description is detailed.")
+                    except Exception as e:
+                        st.error(f"❌ Error editing image: {str(e)}")
+                        st.info("💡 Tip: Ensure your image is clear and the edit description is detailed.")
 
 
 
