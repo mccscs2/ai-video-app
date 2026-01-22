@@ -1,4 +1,3 @@
-import asyncio
 import streamlit as st
 import fal_client
 import requests
@@ -116,43 +115,39 @@ with tab1:
             "9:16 (Portrait)": "9:16"
         }
     
-    if st.button("✨ Generate Image", key="gen_image"):
-        if not prompt.strip():
-            st.error("Please enter a prompt")
-        else:
-            with st.spinner("🎨 Generating image..."):
-                try:
-                    # Call Flux 2 Flash API
-                    result = asyncio.run(client.submit(
-                        "fal-ai/flux-pro/v1.1",
-                        arguments={
-                            "prompt": prompt,
-                            "aspect_ratio": aspect_map[aspect_ratio],
-                            "safety_tolerance": safety_tolerance if safety_enabled else 0.9,
-                            "seed": 42,  # for reproducibility
-                        }
-                    ))
-                    
-                    # Display result
-                    image_url = result["images"][0]["url"]
-                    st.image(image_url, caption=prompt, use_column_width=True)
-                    
-                    # Download button
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.download_button(
-                            "⬇️ Download Image",
-                            data=requests.get(image_url).content,
-                            file_name="generated_image.png",
-                            mime="image/png"
-                        )
-                    
-                    # Store for later use
-                    st.session_state.last_generated_image_url = image_url
-                    st.success("✅ Image generated! You can now use it in other tabs.")
-                
-                except Exception as e:
-                    st.error(f"❌ Error: {str(e)}")
+if st.button("✨ Generate Image", key="gen_image"):
+    if not prompt.strip():
+        st.error("Please enter a prompt")
+    else:
+        with st.spinner("🔮 Generating image..."):
+            try:
+                # Call FAL API
+                result = client.run(
+                    "fal-ai/flux-pro/v1.1",
+                    arguments={
+                        "prompt": prompt,
+                        "aspect_ratio": aspect_map[aspect_ratio],
+                        "safety_tolerance": safety_tolerance if safety_enabled else 0.9,
+                        "seed": 42,
+                    }
+                )
+
+                # Display result
+                image_url = result["images"][0]["url"]
+                st.image(image_url, caption=prompt, use_column_width=True)
+
+                # Download button
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.download_button(
+                        "📥 Download Image",
+                        data=open("temp_image.png", "rb").read(),
+                        file_name="generated_image.png",
+                        mime="image/png"
+                    )
+            except Exception as e:
+                st.error(f"Error generating image: {str(e)}")
+
 
 # ============================================================================
 # TAB 2: IMAGE EDITOR
