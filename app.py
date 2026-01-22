@@ -122,7 +122,7 @@ with tab1:
                     # Call FAL API
                     async def generate():
                         return await client.submit(
-                            "fal-ai/flux-pro/v1.1",
+                            "fal-ai/flux-schnell",
                             arguments={
                                 "prompt": prompt,
                                 "aspect_ratio": aspect_map[aspect_ratio],
