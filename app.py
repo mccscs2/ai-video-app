@@ -1,6 +1,6 @@
 import streamlit as st
 import os
-import fal
+from fal_client import Client
 from PIL import Image
 import io
 import requests
@@ -28,7 +28,9 @@ if not fal_api_key:
 os.environ["FAL_KEY"] = fal_api_key
 
 # Initialize FAL client (it will auto-discover the FAL_KEY env var)
-fal.auth_key = fal_api_key
+# Initialize FAL client with API key
+os.environ["FAL_KEY"] = fal_api_key
+client = Client()
 # ============================================================================
 # SIDEBAR: Settings & Safety Toggle
 # ============================================================================
@@ -115,7 +117,7 @@ with tab1:
         else:
             with st.spinner("🔮 Generating image..."):
                 try:
-                    result = fal.run(
+                    result = client.run(
                         "fal-ai/flux-pro/v1.1",
                         arguments={
                             "prompt": prompt,
@@ -191,8 +193,8 @@ with tab2:
             else:
                 with st.spinner("🎨 Editing image..."):
                     try:
-                        result = fal.run(
-                            "fal-ai/flux-pro/v1.1",
+                        result = client.run(
+                         "fal-ai/flux-pro/v1.1",
                             arguments={
                                 "prompt": edit_prompt,
                                 "safety_tolerance": safety_tolerance if safety_enabled else 0.9,
