@@ -1,11 +1,9 @@
 import asyncio
 import streamlit as st
-import fal_client
-import requests
+import os
+from fal_client import AsyncClient
 from PIL import Image
 import io
-import time
-from pathlib import Path
 
 # Set up page
 st.set_page_config(
@@ -14,10 +12,6 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
-
-import os
-import streamlit as st
-from fal_client import AsyncClient
 
 # Title
 st.title("🎬 AI Character Animation Studio")
@@ -35,9 +29,10 @@ os.environ["FAL_KEY"] = fal_api_key
 
 # Initialize FAL client (it will auto-discover the FAL_KEY env var)
 client = AsyncClient()
-
-
-
+# Add after initializing client
+st.write("🔍 Debug Info:")
+st.write(f"FAL_KEY env var set: {'FAL_KEY' in os.environ}")
+st.write(f"FAL_KEY value (first 10 chars): {os.environ.get('FAL_KEY', 'NOT SET')[:10]}")
 # ============================================================================
 # SIDEBAR: Settings & Safety Toggle
 # ============================================================================
@@ -79,6 +74,7 @@ with st.sidebar:
     st.markdown("---")
     show_advanced = st.checkbox("Show Advanced Options", value=False)
 
+
 # ============================================================================
 # MAIN TABS
 # ============================================================================
@@ -88,6 +84,7 @@ tab1, tab2, tab3, tab4 = st.tabs([
     "🎭 Character Animation",
     "📹 Video Generator"
 ])
+
 
 # ============================================================================
 # TAB 1: TEXT-TO-IMAGE
@@ -116,41 +113,46 @@ with tab1:
             "9:16 (Portrait)": "9:16"
         }
     
-if st.button("✨ Generate Image", key="gen_image"):
-    if not prompt.strip():
-        st.error("Please enter a prompt")
-    else:  # ← ADD THIS LINE
-        with st.spinner("🔮 Generating image..."):
-            try:
-                # Call FAL API
-                async def generate():
-                    return await client.submit(
-                        "fal-ai/flux-pro/v1.1",
-                        arguments={
-                            "prompt": prompt,
-                            "aspect_ratio": aspect_map[aspect_ratio],
-                            "safety_tolerance": safety_tolerance if safety_enabled else 0.9,
-                            "seed": 42,
-                        }
-                    )
-                
-                result = asyncio.run(generate())
+    if st.button("✨ Generate Image", key="gen_image"):
+        if not prompt.strip():
+            st.error("Please enter a prompt")
+        else:
+            with st.spinner("🔮 Generating image..."):
+                try:
+                    # Call FAL API
+                    async def generate():
+                        return await client.submit(
+                            "fal-ai/flux-pro/v1.1",
+                            arguments={
+                                "prompt": prompt,
+                                "aspect_ratio": aspect_map[aspect_ratio],
+                                "safety_tolerance": safety_tolerance if safety_enabled else 0.9,
+                                "seed": 42,
+                            }
+                        )
+                    
+                    result = asyncio.run(generate())
 
-                # Display result
-                image_url = result["images"][0]["url"]
-                st.image(image_url, caption=prompt, use_column_width=True)
-
-                # Download button
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.download_button(
-                        "📥 Download Image",
-                        data=open("temp_image.png", "rb").read(),
-                        file_name="generated_image.png",
-                        mime="image/png"
-                    )
-            except Exception as e:
-                st.error(f"Error generating image: {str(e)}")
+                    # Display result
+                    image_url = result["images"][0]["url"]
+                    st.image(image_url, caption=prompt, use_column_width=True)
+                    
+                    # Store in session for Image Editor tab
+                    st.session_state.last_generated_image_url = image_url
+                    
+                    # Download button - using requests to download from URL
+                    response = requests.get(image_url)
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.download_button(
+                            "📥 Download Image",
+                            data=response.content,
+                            file_name="generated_image.png",
+                            mime="image/png"
+                        )
+                except Exception as e:
+                    st.error(f"❌ Error generating image: {str(e)}")
+                    st.info("💡 Tip: Check that your FAL API key is valid and has credits remaining.")
 
 
 # ============================================================================
@@ -172,17 +174,15 @@ with tab2:
     with col2:
         if "last_generated_image_url" in st.session_state:
             if st.button("📎 Use Last Generated Image"):
-                uploaded_file = st.session_state.last_generated_image_url
+                st.session_state.use_generated = True
     
-    if uploaded_file:
+    if uploaded_file or st.session_state.get("use_generated", False):
         # Display uploaded image
-        if isinstance(uploaded_file, str):  # URL
-            st.image(uploaded_file, caption="Original Image", width=300)
-            image_for_edit = uploaded_file
-        else:  # File
+        if st.session_state.get("use_generated", False):
+            st.image(st.session_state.last_generated_image_url, caption="Original Image", width=300)
+        else:
             image_data = Image.open(uploaded_file)
             st.image(image_data, caption="Original Image", width=300)
-            image_for_edit = uploaded_file
         
         # Edit prompt
         st.markdown("---")
@@ -213,9 +213,19 @@ with tab2:
                         # Display result
                         edited_image_url = result["images"][0]["url"]
                         st.image(edited_image_url, caption="Edited Image", use_column_width=True)
+                        
+                        # Download button
+                        response = requests.get(edited_image_url)
+                        st.download_button(
+                            "📥 Download Edited Image",
+                            data=response.content,
+                            file_name="edited_image.png",
+                            mime="image/png"
+                        )
 
                     except Exception as e:
-                        st.error(f"Error editing image: {str(e)}")
+                        st.error(f"❌ Error editing image: {str(e)}")
+                        st.info("💡 Tip: Ensure your image is clear and the edit description is detailed.")
 
 
 # ============================================================================
@@ -261,34 +271,17 @@ with tab3:
             )
             
             if audio:
-                st.audio(audio, format="audio/mp3")
+                st.audio(audio)
         
         if st.button("🎬 Generate Talking Avatar", key="gen_avatar"):
             if not portrait or not audio:
                 st.error("Please upload both portrait and audio")
             else:
-                with st.spinner("🎬 Creating talking avatar (this may take 30-60 seconds)..."):
-                    try:
-                        # Save files temporarily and get URLs (simplified for demo)
-                        st.info("⏳ Processing: This uses Kling Avatar v2 API. Please wait...")
-                        
-                        # In production, you'd upload to cloud storage first
-                        # For now, show placeholder
-                        st.warning(
-                            "Note: Full implementation requires uploading files to cloud storage (S3, etc). "
-                            "For testing, use FAL's web UI at https://fal.ai/models/fal-ai/kling-video/ai-avatar/v2/pro"
-                        )
-                        
-                        st.info(
-                            "📌 Quick alternative: "
-                            "1. Go to FAL.ai → Kling Avatar v2\n"
-                            "2. Upload your portrait\n"
-                            "3. Upload/record audio\n"
-                            "4. Generate!"
-                        )
-                    
-                    except Exception as e:
-                        st.error(f"❌ Error: {str(e)}")
+                st.info("⏳ Processing: This uses Kling Avatar v2 API. Please wait...")
+                st.warning(
+                    "Note: Full implementation requires uploading files to cloud storage (S3, etc). "
+                    "For testing, use FAL's web UI at https://fal.ai/models/fal-ai/kling-video/ai-avatar/v2/pro"
+                )
     
     elif animation_style == "Motion Transfer (Copy a dance/action)":
         st.subheader("Transfer Motion from Reference Video")
@@ -314,7 +307,7 @@ with tab3:
                 key="motion_ref"
             )
             if ref_video:
-                st.video(ref_video, subtitles=None)
+                st.video(ref_video)
         
         motion_type = st.selectbox(
             "Motion Type",
@@ -329,6 +322,7 @@ with tab3:
                     "⚠️ Full implementation requires uploading files to FAL storage. "
                     "Use FAL.ai directly: https://fal.ai/models/fal-ai/kling-video/v2.6/standard/motion-control"
                 )
+
 
 # ============================================================================
 # TAB 4: VIDEO GENERATOR
@@ -393,6 +387,7 @@ with tab4:
                 st.info(
                     "📌 Test with Kling 2.6 at: https://fal.ai/models/fal-ai/kling-video/v2.6/standard"
                 )
+
 
 # ============================================================================
 # FOOTER
