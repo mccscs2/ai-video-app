@@ -1,7 +1,6 @@
-import asyncio
 import streamlit as st
 import os
-from fal_client import AsyncClient
+import fal
 from PIL import Image
 import io
 import requests
@@ -29,11 +28,7 @@ if not fal_api_key:
 os.environ["FAL_KEY"] = fal_api_key
 
 # Initialize FAL client (it will auto-discover the FAL_KEY env var)
-client = AsyncClient()
-# Add after initializing client
-st.write("🔍 Debug Info:")
-st.write(f"FAL_KEY env var set: {'FAL_KEY' in os.environ}")
-st.write(f"FAL_KEY value (first 10 chars): {os.environ.get('FAL_KEY', 'NOT SET')[:10]}")
+fal.auth_key = fal_api_key
 # ============================================================================
 # SIDEBAR: Settings & Safety Toggle
 # ============================================================================
@@ -115,45 +110,40 @@ with tab1:
         }
     
     if st.button("✨ Generate Image", key="gen_image"):
-        if not prompt.strip():
-            st.error("Please enter a prompt")
-        else:
-            with st.spinner("🔮 Generating image..."):
-                try:
-                    # Call FAL API
-                    async def generate():
-                        return await client.submit(
-                            "fal-ai/flux-pro/v1.1",
-                            arguments={
-                                "prompt": prompt,
-                                "aspect_ratio": aspect_map[aspect_ratio],
-                                "safety_tolerance": safety_tolerance if safety_enabled else 0.9,
-                                "seed": 42,
-                            }
-                        )
-                    
-                    result = asyncio.run(generate())
+    if not prompt.strip():
+        st.error("Please enter a prompt")
+    else:
+        with st.spinner("🔮 Generating image..."):
+            try:
+                result = fal.run(
+                    "fal-ai/flux-pro/v1.1",
+                    arguments={
+                        "prompt": prompt,
+                        "aspect_ratio": aspect_map[aspect_ratio],
+                        "safety_tolerance": safety_tolerance if safety_enabled else 0.9,
+                        "seed": 42,
+                    }
+                )
+                
+                # Display result
+                image_url = result["images"][0]["url"]
+                st.image(image_url, caption=prompt, use_column_width=True)
+                
+                # Store in session for Image Editor tab
+                st.session_state.last_generated_image_url = image_url
+                
+                # Download button
+                response = requests.get(image_url)
+                st.download_button(
+                    "📥 Download Image",
+                    data=response.content,
+                    file_name="generated_image.png",
+                    mime="image/png"
+                )
+            except Exception as e:
+                st.error(f"❌ Error generating image: {str(e)}")
+                st.info("💡 Tip: Check that your FAL API key is valid and has credits remaining.")
 
-                    # Display result
-                    image_url = result["images"][0]["url"]
-                    st.image(image_url, caption=prompt, use_column_width=True)
-                    
-                    # Store in session for Image Editor tab
-                    st.session_state.last_generated_image_url = image_url
-                    
-                    # Download button - using requests to download from URL
-                    response = requests.get(image_url)
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.download_button(
-                            "📥 Download Image",
-                            data=response.content,
-                            file_name="generated_image.png",
-                            mime="image/png"
-                        )
-                except Exception as e:
-                    st.error(f"❌ Error generating image: {str(e)}")
-                    st.info("💡 Tip: Check that your FAL API key is valid and has credits remaining.")
 
 
 # ============================================================================
@@ -194,41 +184,38 @@ with tab2:
             height=80
         )
         
-        if st.button("🎨 Apply Edits", key="apply_edits"):
-            if not edit_prompt.strip():
-                st.error("Please describe the changes you want")
-            else:
-                with st.spinner("🎨 Editing image..."):
-                    try:
-                        # Use asyncio.run() for async code in Streamlit
-                        async def edit():
-                            return await client.submit(
-                                "fal-ai/flux-pro/v1.1",
-                                arguments={
-                                    "prompt": edit_prompt,
-                                    "safety_tolerance": safety_tolerance if safety_enabled else 0.9,
-                                    "num_inference_steps": 4,
-                                }
-                            )
-                        
-                        result = asyncio.run(edit())
+       if st.button("🎨 Apply Edits", key="apply_edits"):
+    if not edit_prompt.strip():
+        st.error("Please describe the changes you want")
+    else:
+        with st.spinner("🎨 Editing image..."):
+            try:
+                result = fal.run(
+                    "fal-ai/flux-pro/v1.1",
+                    arguments={
+                        "prompt": edit_prompt,
+                        "safety_tolerance": safety_tolerance if safety_enabled else 0.9,
+                        "num_inference_steps": 4,
+                    }
+                )
+                
+                # Display result
+                edited_image_url = result["images"][0]["url"]
+                st.image(edited_image_url, caption="Edited Image", use_column_width=True)
+                
+                # Download button
+                response = requests.get(edited_image_url)
+                st.download_button(
+                    "📥 Download Edited Image",
+                    data=response.content,
+                    file_name="edited_image.png",
+                    mime="image/png"
+                )
 
-                        # Display result
-                        edited_image_url = result["images"][0]["url"]
-                        st.image(edited_image_url, caption="Edited Image", use_column_width=True)
-                        
-                        # Download button
-                        response = requests.get(edited_image_url)
-                        st.download_button(
-                            "📥 Download Edited Image",
-                            data=response.content,
-                            file_name="edited_image.png",
-                            mime="image/png"
-                        )
+            except Exception as e:
+                st.error(f"❌ Error editing image: {str(e)}")
+                st.info("💡 Tip: Ensure your image is clear and the edit description is detailed.")
 
-                    except Exception as e:
-                        st.error(f"❌ Error editing image: {str(e)}")
-                        st.info("💡 Tip: Ensure your image is clear and the edit description is detailed.")
 
 
 # ============================================================================
