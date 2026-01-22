@@ -1,6 +1,6 @@
 import streamlit as st
 import os
-from fal_client import Client
+import fal_client
 from PIL import Image
 import io
 import requests
@@ -26,7 +26,7 @@ if not fal_api_key:
 
 # Set it as environment variable so fal_client can find it
 os.environ["FAL_KEY"] = fal_api_key
-client = Client()
+
 # ============================================================================
 # SIDEBAR: Settings & Safety Toggle
 # ============================================================================
@@ -113,8 +113,8 @@ with tab1:
         else:
             with st.spinner("🔮 Generating image..."):
                 try:
-                    result = client.run(
-                        "fal-ai/flux-pro/v1.1",
+                    result = fal_client.run_sync(
+                     "fal-ai/flux-pro/v1.1",
                         arguments={
                             "prompt": prompt,
                             "aspect_ratio": aspect_map[aspect_ratio],
@@ -189,7 +189,7 @@ with tab2:
             else:
                 with st.spinner("🎨 Editing image..."):
                     try:
-                        result = client.run(
+                        result = fal_client.run_sync(
                             "fal-ai/flux-pro/v1.1",
                             arguments={
                                 "prompt": edit_prompt,
