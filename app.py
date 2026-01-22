@@ -354,7 +354,7 @@ with tab4:
             
             motion_prompt = st.text_area(
                 "Describe the motion (e.g., 'Camera pans left, slow gentle motion')",
-                height=60
+                height=80
             )
             
             if st.button("🎬 Generate Video", key="gen_i2v"):
