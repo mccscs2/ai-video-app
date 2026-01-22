@@ -122,7 +122,7 @@ with tab1:
             with st.spinner("🎨 Generating image..."):
                 try:
                     # Call Flux 2 Flash API
-                    result = fal_client.subscribe(
+                    result = asyncio.run(client.submit(
                         "fal-ai/flux-pro/v1.1",
                         arguments={
                             "prompt": prompt,
@@ -130,7 +130,7 @@ with tab1:
                             "safety_tolerance": safety_tolerance if safety_enabled else 0.9,
                             "seed": 42,  # for reproducibility
                         }
-                    )
+                    ))
                     
                     # Display result
                     image_url = result["images"][0]["url"]
@@ -206,14 +206,16 @@ with tab2:
                             st.info("Converting image for API...")
                             image_url = "placeholder_url"  # In production, upload to storage
                         
-                        result = fal_client.subscribe(
+                        import asyncio
+
+                        result = asyncio.run(client.submit(
                             "fal-ai/flux-schnell",
                             arguments={
                                 "prompt": edit_prompt,
                                 "safety_tolerance": safety_tolerance if safety_enabled else 0.9,
                                 "num_inference_steps": 4,
                             }
-                        )
+                        ))
                         
                         edited_image_url = result["images"][0]["url"]
                         st.image(edited_image_url, caption="Edited Image", use_column_width=True)
